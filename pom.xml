@@ -110,7 +110,13 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
 		</dependency>
-	
+		
+		<!-- ImageJ2 -->
+		<dependency>
+			<groupId>net.imagej</groupId>
+			<artifactId>imagej</artifactId>
+		</dependency>
+		
 		<!-- Jama (Java Matrix package) is used for computing inertia ellipsoid --> 
 		<dependency>
 			<groupId>gov.nist.math</groupId>
