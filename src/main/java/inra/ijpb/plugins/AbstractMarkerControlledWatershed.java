@@ -21,17 +21,18 @@
  */
 package inra.ijpb.plugins;
 
+import net.imagej.ops.OpService;
+import net.imagej.ops.image.watershed.WatershedSeeded;
+import net.imglib2.algorithm.labeling.ConnectedComponents.StructuringElement;
+import net.imglib2.img.Img;
+import net.imglib2.roi.labeling.ImgLabeling;
+import net.imglib2.type.BooleanType;
+import net.imglib2.type.numeric.IntegerType;
+import net.imglib2.type.numeric.RealType;
+
 import org.scijava.ItemIO;
-import org.scijava.command.Command;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
-import org.scijava.plugin.Plugin;
-
-import ij.ImagePlus;
-import inra.ijpb.binary.BinaryImages;
-import inra.ijpb.data.image.Images3D;
-import inra.ijpb.watershed.Watershed;
-
 
 /**
  * 
@@ -42,35 +43,30 @@ import inra.ijpb.watershed.Watershed;
  *
  * @author Ignacio Arganda-Carreras
  */
-@Plugin(type = Command.class, menuPath = "Plugins>MorphoLibJ>Segmentation>Marker-controlled Watershed")
-public class MarkerControlledWatershed3DPlugin implements Command
+public abstract class AbstractMarkerControlledWatershed<I extends RealType<I>, L, LB extends IntegerType<LB>, M extends BooleanType<M>>
 {
 	@Parameter
-	private ImagePlus input;
-	
-	@Parameter
-	private ImagePlus marker;
+	Img<I> input;
 	
 	@Parameter(required = false)
-	private ImagePlus mask;
+	Img<M> mask;
 	
 	@Parameter(type=ItemIO.OUTPUT)
-	private ImagePlus result;
-	
-	/** flag set to TRUE if markers are binary, to FALSE if markers are labels */
-	@Parameter
-	private boolean binaryMarkers = true;
+	ImgLabeling<L, LB> result;
 	
 	/** flag to calculate watershed dams */
 	@Parameter
-	private boolean getDams = true;
+	boolean getDams = true;
 	
 	/** flag to use 26-connectivity */
 	@Parameter
-	private boolean use26neighbors = true;
+	boolean use26neighbors = true;
 
 	@Parameter
 	LogService logService;
+	
+	@Parameter
+	OpService opService;
 	
 	/**
 	 * Apply marker-controlled watershed to a grayscale 2D or 3D image.
@@ -82,47 +78,23 @@ public class MarkerControlledWatershed3DPlugin implements Command
 	 * @return the resulting watershed
 	 */
 	@SuppressWarnings( "hiding" )
-	public ImagePlus process(
-			ImagePlus input, 
-			ImagePlus marker,
-			ImagePlus mask,
-			int connectivity ) 
+	public ImgLabeling<L, LB> process(
+			Img<I> input, 
+			ImgLabeling<L, LB> marker,
+			Img<M> mask,
+			StructuringElement connectivity ) 
 	{
 		final long start = System.currentTimeMillis();
 		
-		if (binaryMarkers)
-		{
-			logService.info( "-> Compute marker labels" );
-			marker = BinaryImages.componentsLabeling(marker, connectivity, 32);
-		}
-		
 		logService.info("-> Running watershed...");
-		
-		ImagePlus resultImage = Watershed.computeWatershed(input, marker, mask, connectivity, getDams );
+	
+		ImgLabeling<L, LB> out = ( ImgLabeling< L, LB > ) opService.run(WatershedSeeded.class, null,
+				input, marker, true, getDams, mask);
 		
 		final long end = System.currentTimeMillis();
 		logService.info( "Watershed 3d took " + (end-start) + " ms.");
 		
-		return resultImage;
-	}
-	
-
-	@Override
-	public void run()
-	{
-		// a 3D image is assumed but it will use 2D connectivity if the
-		// input is 2D
-		int connectivity = use26neighbors ? 26 : 6;
-		if ( input.getImageStackSize() == 1 )
-			connectivity = use26neighbors ? 8 : 4;
-
-		result = process( input, marker, mask, connectivity );
-
-		// Set result slice to the current slice in the input image
-		result.setSlice( input.getCurrentSlice() );
-
-		// optimize display range
-		Images3D.optimizeDisplayRange( result );
+		return out;
 	}
 
 }
