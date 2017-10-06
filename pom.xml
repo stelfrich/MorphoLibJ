@@ -118,6 +118,10 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
 		</dependency>
 		<dependency>
 			<groupId>net.imagej</groupId>
+			<artifactId>imagej-legacy</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>net.imagej</groupId>
 			<artifactId>imagej-ops</artifactId>
 			<version>0.38.1-SNAPSHOT</version>
 		</dependency>
